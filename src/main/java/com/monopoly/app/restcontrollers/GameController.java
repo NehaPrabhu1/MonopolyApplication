@@ -18,7 +18,7 @@ import com.monopoly.app.services.PlayerService;
 @RestController
 @RequestMapping("")
 public class GameController {
-	static int turn = 1;
+	static int turn = 0;
 
 	@Autowired
 	private PlayerService playerService;
@@ -43,7 +43,7 @@ public class GameController {
 		
 		turn = 1;
 
-		return "Game created";
+		return "Game created successfully";
 	}
 
 	@GetMapping("/roll-die/{playername}")
@@ -72,14 +72,18 @@ public class GameController {
 		Place place = placeService.findPlace(newPosition);
 		
 		String outcome = "";
+	
 		
 		if(place.getBoughtby() == null) {
-			place.setBoughtby(playername);
-			int amount = player.getAmount() - place.getBuyprice();
-			player.setAmount(amount);
-			game.setBuy(true);
-			game.setRent(false);
-			outcome = " bought for "+place.getBuyprice()+ " now has "+player.getAmount();
+			if(place.getPlaceid() != 1) {
+				place.setBoughtby(playername);
+				int amount = player.getAmount() - place.getBuyprice();
+				player.setAmount(amount);
+				game.setBuy(true);
+				game.setRent(false);
+				outcome = ", Unclaimed place and hence bought for "+place.getBuyprice()+ ". Remaining balance is "+player.getAmount();
+			}
+			
 		}else if(place.getBoughtby().equals(playername)) {
 			game.setBuy(true);
 			game.setRent(false);
@@ -93,7 +97,12 @@ public class GameController {
 			
 			Player otherplayer = playerService.getPlayer(playername1);
 			otherplayer.setAmount(otherplayer.getAmount()+place.getRent());
-			outcome = " rented for "+ place.getRent()+ " now has "+player.getAmount();
+			outcome = ", paid rent "+ place.getRent()+ ". Remaining balance is "+player.getAmount();
+		}
+		
+		if(11 - currentPosition < die_rolled) {
+			player.setAmount(player.getAmount()+200);
+			outcome = outcome+". Also Crossed “Start” gaining 200. Remaining Balance is "+player.getAmount();
 		}
 		
 		//save place, player, player1, game
@@ -105,10 +114,10 @@ public class GameController {
 		
 		turn++;
 		if(turn == 50 || player.getAmount()<0) {
-			return "Game over";
+			outcome = outcome+  " Game Over, You lose!";
 		}
 		
-		return playername +" rolled die - "+die_rolled+" new place - "+place.getPlacename()+ outcome;
+		return playername +" Die rolled "+die_rolled+" and landed on place "+place.getPlacename()+ outcome;
 	}
 
 }
